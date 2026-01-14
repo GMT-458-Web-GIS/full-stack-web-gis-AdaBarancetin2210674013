@@ -68,8 +68,7 @@ Express Server (server.js)
 v
 Database (MongoDB / SQL – configurable)
 
-yaml
-Kodu kopyala
+
 
 ---
 
@@ -92,8 +91,7 @@ C:\webgis
 ├── swagger.js # Swagger initialization
 └── swagger.yaml # OpenAPI specification
 
-yaml
-Kodu kopyala
+
 
 ---
 
@@ -251,3 +249,4 @@ Incident verification & moderation workflow
 Multi-city and national scale support
 
 Audit logging and rate limiting
+
