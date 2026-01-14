@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ankara Doğal Afet İzleme Sistemi</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        body {
+            display: flex;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        #sidebar {
+            width: 380px;
+            background: rgba(255, 255, 255, 0.95);
+            border-right: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        
+        #map {
+            flex: 1;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .header {
+            padding: 25px;
+            background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+            color: white;
+            text-align: center;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .alert-banner {
+            background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
+            color: white;
+            padding: 12px 20px;
+            margin: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .user-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            flex-shrink: 0;
+            border-radius: 15px;
+            margin: 15px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2ecc71);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .login-prompt {
+            text-align: center;
+            padding: 12px;
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+            border-radius: 8px;
+            margin-top: 15px;
+            color: #856404;
+            font-weight: 500;
+            border: 1px solid #fdcb6e;
+        }
+        
+        .category-filters {
+            padding: 20px;
+            flex-shrink: 0;
+        }
+        
+        .category-filters h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .category-item {
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border: 2px solid transparent;
+            background: white;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+        }
+        
+        .category-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        
+        .category-item.active {
+            border-color: currentColor;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        
+        .category-icon {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+        
+        .add-incident-section {
+            padding: 20px;
+            flex-shrink: 0;
+        }
+        
+        .add-incident-section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        select, input, textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .error {
+            border-color: #e74c3c !important;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 6px;
+            display: none;
+        }
+        
+        button {
+            padding: 16px;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        .primary-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        
+        .primary-btn:hover {
+            background: linear-gradient(135deg, #2980b9, #2573a7);
+        }
+        
+        .incident-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .incident-list h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .incident-item {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+            transition: transform 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .incident-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .incident-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .incident-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #2c3e50;
+            flex: 1;
+        }
+        
+        .incident-meta {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        
+        .incident-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .incident-desc {
+            font-size: 0.95rem;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .severity-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .delete-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .delete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+        
+        .delete-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal h2 {
+            margin-bottom: 25px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #7f8c8d;
+            width: auto;
+            padding: 0;
+            transition: color 0.2s;
+        }
+        
+        .close-modal:hover {
+            color: #e74c3c;
+        }
+        
+        .login-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            margin-top: 20px;
+        }
+        
+        .logout-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            margin-top: 12px;
+            padding: 12px;
+            font-size: 0.95rem;
+        }
+        
+        .leaflet-popup-content h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .leaflet-popup-content p {
+            margin: 8px 0;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .leaflet-popup-content button {
+            margin-top: 12px;
+            padding: 10px 15px;
+            font-size: 14px;
+            border-radius: 8px;
+        }
+        
+        #noIncidentsText {
+            text-align: center;
+            padding: 50px 20px;
+            color: #7f8c8d;
+            font-style: italic;
+            font-size: 1.1rem;
+        }
+        
+        .weather-info {
+            background: linear-gradient(135deg, #36D1DC, #5B86E5);
+            color: white;
+            padding: 18px;
+            border-radius: 15px;
+            margin: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .weather-temp {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        
+        .weather-desc {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 500;
+        }
+        
+        .weather-icon {
+            font-size: 3rem;
+            opacity: 0.9;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            background: #2c3e50;
+            color: white;
+            padding: 18px 28px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 1001;
+            transform: translateX(150%);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            max-width: 400px;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast.error {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
+        .toast.success {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+        
+        .toast.info {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        
+        .toast.warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        .disaster-level {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 6px 15px;
+            border-bottom-left-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        
+        .emergency-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            animation: emergencyPulse 1.5s infinite;
+            margin-top: 10px;
+        }
+        
+        @keyframes emergencyPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        @media (max-width: 1024px) {
+            body {
+                flex-direction: column;
+            }
+            
+            #sidebar {
+                width: 100%;
+                height: 50vh;
+                border-right: none;
+                border-bottom: 1px solid rgba(0,0,0,0.1);
+            }
+            
+            #map {
+                height: 50vh;
+            }
+            
+            .category-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .category-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .weather-info {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .weather-temp {
+                font-size: 2rem;
+            }
+            
+            .weather-icon {
+                font-size: 2.5rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .header p {
+                font-size: 0.85rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .category-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .incident-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .severity-badge {
+                align-self: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div class="header">
+            <h1><i class="fas fa-exclamation-triangle"></i> Ankara Doğal Afet İzleme Sistemi</h1>
+            <p>Deprem, yangın, sel ve diğer acil durumları takip edin</p>
+        </div>
+        
+        <!-- Acil Uyarı Banner -->
+        <div class="alert-banner" id="alertBanner">
+            <i class="fas fa-bell"></i>
+            <span id="alertText">Son 24 saatte 3 yeni afet bildirimi</span>
+        </div>
+        
+        <!-- Hava Durumu -->
+        <div class="weather-info">
+            <div>
+                <div class="weather-temp" id="weatherTemp">3°C</div>
+                <div class="weather-desc" id="weatherDesc">Parçalı Bulutlu</div>
+                <div style="font-size: 0.9rem; opacity: 0.8;">Nem: %65 | Rüzgar: 12 km/h</div>
+            </div>
+            <div class="weather-icon">
+                <i class="fas fa-cloud-sun"></i>
+            </div>
+        </div>
+        
+        <!-- Kullanıcı Bilgileri -->
+        <div class="user-section">
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <div>
+                    <div id="userName" style="font-weight: 600; font-size: 1.1rem;">Misafir Kullanıcı</div>
+                    <div id="userStatus" style="font-size: 0.9rem; color: #7f8c8d;">Giriş yapılmadı</div>
+                </div>
+            </div>
+            <div id="loginPrompt" class="login-prompt">
+                <i class="fas fa-info-circle"></i> Afet bildirimi yapmak için giriş yapmalısınız
+            </div>
+            <button id="loginBtn" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i> Giriş Yap / Üye Ol
+            </button>
+            <button id="logoutBtn" class="logout-btn" style="display: none;">
+                <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+            </button>
+            <button id="emergencyBtn" class="emergency-btn" style="display: none;">
+                <i class="fas fa-phone-alt"></i> Acil Yardım Çağır
+            </button>
+        </div>
+        
+        <!-- Afet Kategorileri -->
+        <div class="category-filters">
+            <h3><i class="fas fa-filter"></i> Afet Kategorileri</h3>
+            <div class="category-grid" id="categoryList">
+                <!-- Kategoriler buraya eklenecek -->
+            </div>
+        </div>
+        
+        <!-- Yeni Afet Bildirimi -->
+        <div class="add-incident-section">
+            <h3><i class="fas fa-plus-circle"></i> Yeni Afet Bildirimi</h3>
+            <div class="form-group">
+                <label for="incidentType"><i class="fas fa-tag"></i> Afet Tipi</label>
+                <select id="incidentType">
+                    <option value="deprem">Deprem</option>
+                    <option value="yangin">Yangın</option>
+                    <option value="sel">Sel/Su Baskını</option>
+                    <option value="heyelan">Heyelan/Çığ</option>
+                    <option value="firtina">Fırtına/Kasırga</option>
+                    <option value="kacak">Gaz Kaçağı/Patlama</option>
+                    <option value="diger">Diğer Acil Durum</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="incidentSeverity"><i class="fas fa-exclamation-triangle"></i> Şiddet/Önem Derecesi</label>
+                <select id="incidentSeverity">
+                    <option value="low">Düşük (Bilgi)</option>
+                    <option value="medium">Orta (Uyarı)</option>
+                    <option value="high">Yüksek (Tehlike)</option>
+                    <option value="critical">Kritik (Acil Müdahale)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="incidentTitle"><i class="fas fa-heading"></i> Başlık</label>
+                <input type="text" id="incidentTitle" placeholder="Örn: Çankaya'da 4.2 büyüklüğünde deprem">
+                <div class="error-message" id="titleError">Lütfen bir başlık girin!</div>
+            </div>
+            <div class="form-group">
+                <label for="incidentDesc"><i class="fas fa-align-left"></i> Açıklama</label>
+                <textarea id="incidentDesc" rows="3" placeholder="Afet hakkında detaylı bilgi (hasar, yaralı sayısı, ihtiyaçlar vb.)"></textarea>
+            </div>
+            <button id="addIncidentBtn" class="primary-btn" disabled>
+                <i class="fas fa-bullhorn"></i> Afet Bildirimi Yap
+            </button>
+            <div style="margin-top: 12px; text-align: center;">
+                <small style="color: #7f8c8d; font-size: 13px;">veya haritaya tıklayarak konum belirleyebilirsiniz</small>
+            </div>
+        </div>
+        
+        <!-- Afet Bildirimleri Listesi -->
+        <div class="incident-list">
+            <h3><i class="fas fa-list"></i> Son Afet Bildirimleri</h3>
+            <div id="incidentsContainer">
+                <p id="noIncidentsText">Henüz afet bildirimi yapılmadı</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Harita -->
+    <div id="map"></div>
+    
+    <!-- Giriş Modalı -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" id="closeModal">&times;</button>
+            <h2><i class="fas fa-user-shield"></i> Afet Yönetim Sistemi</h2>
+            <div class="form-group">
+                <label for="username"><i class="fas fa-user"></i> Kullanıcı Adı</label>
+                <input type="text" id="username" placeholder="Kullanıcı adınızı girin">
+            </div>
+            <div class="form-group">
+                <label for="password"><i class="fas fa-lock"></i> Şifre</label>
+                <input type="password" id="password" placeholder="Şifrenizi girin">
+            </div>
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope"></i> E-posta (üye olmak için)</label>
+                <input type="email" id="email" placeholder="E-posta adresiniz">
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 25px;">
+                <button id="doLoginBtn" style="flex: 1;">
+                    <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                </button>
+                <button id="doRegisterBtn" style="flex: 1; background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                    <i class="fas fa-user-plus"></i> Üye Ol
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Mesaj -->
+    <div id="toast" class="toast">
+        <i class="fas fa-info-circle"></i>
+        <span id="toastMessage">Mesaj</span>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Harita ve veri yapıları
+        let map;
+        let incidents = [];
+        let currentUser = null;
+        let selectedCategory = 'all';
+        
+        // Afet kategorileri
+        const disasterCategories = {
+            'deprem': { 
+                color: '#e74c3c', 
+                icon: 'mountain', 
+                label: 'Deprem',
+                description: 'Sarsıntı, hasar, yaralanma bildirimi'
+            },
+            'yangin': { 
+                color: '#f39c12', 
+                icon: 'fire', 
+                label: 'Yangın',
+                description: 'Orman, bina, araç yangını'
+            },
+            'sel': { 
+                color: '#3498db', 
+                icon: 'water', 
+                label: 'Sel/Su Baskını',
+                description: 'Aşırı yağış, taşkın, su baskını'
+            },
+            'heyelan': { 
+                color: '#8e44ad', 
+                icon: 'mountain', 
+                label: 'Heyelan/Çığ',
+                description: 'Toprak kayması, çığ tehlikesi'
+            },
+            'firtina': { 
+                color: '#9b59b6', 
+                icon: 'wind', 
+                label: 'Fırtına',
+                description: 'Şiddetli rüzgar, hortum, kasırga'
+            },
+            'kacak': { 
+                color: '#1abc9c', 
+                icon: 'gas-pump', 
+                label: 'Gaz Kaçağı',
+                description: 'Doğal gaz, LPG kaçağı, patlama riski'
+            },
+            'diger': { 
+                color: '#7f8c8d', 
+                icon: 'exclamation-triangle', 
+                label: 'Diğer',
+                description: 'Diğer acil durumlar'
+            }
+        };
+        
+        // Şiddet seviyeleri
+        const severityLevels = {
+            'low': { color: '#2ecc71', label: 'Düşük', icon: 'info-circle' },
+            'medium': { color: '#f1c40f', label: 'Orta', icon: 'exclamation-circle' },
+            'high': { color: '#e67e22', label: 'Yüksek', icon: 'exclamation-triangle' },
+            'critical': { color: '#e74c3c', label: 'Kritik', icon: 'skull-crossbones' }
+        };
+        
+        // Ankara'da örnek lokasyonlar
+        const ankaraLocations = {
+            'Kızılay': { lat: 39.9208, lng: 32.8541 },
+            'Çankaya': { lat: 39.8876, lng: 32.8627 },
+            'Yenimahalle': { lat: 39.9667, lng: 32.8000 },
+            'Altındağ': { lat: 39.9500, lng: 32.8667 },
+            'Mamak': { lat: 39.9500, lng: 32.9167 },
+            'Etimesgut': { lat: 39.9561, lng: 32.6386 },
+            'Sincan': { lat: 39.9667, lng: 32.5667 },
+            'Keçiören': { lat: 40.0167, lng: 32.8333 },
+            'Gölbaşı': { lat: 39.7903, lng: 32.8086 },
+            'Polatlı': { lat: 39.5833, lng: 32.1500 },
+            'Haymana': { lat: 39.4333, lng: 32.5000 },
+            'Beypazarı': { lat: 40.1667, lng: 31.9167 }
+        };
+        
+        // DOM elementleri
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const emergencyBtn = document.getElementById('emergencyBtn');
+        const addIncidentBtn = document.getElementById('addIncidentBtn');
+        const loginModal = document.getElementById('loginModal');
+        const closeModal = document.getElementById('closeModal');
+        const doLoginBtn = document.getElementById('doLoginBtn');
+        const doRegisterBtn = document.getElementById('doRegisterBtn');
+        const categoryList = document.getElementById('categoryList');
+        const incidentsContainer = document.getElementById('incidentsContainer');
+        const noIncidentsText = document.getElementById('noIncidentsText');
+        const userName = document.getElementById('userName');
+        const userAvatar = document.getElementById('userAvatar');
+        const userStatus = document.getElementById('userStatus');
+        const loginPrompt = document.getElementById('loginPrompt');
+        const weatherTemp = document.getElementById('weatherTemp');
+        const weatherDesc = document.getElementById('weatherDesc');
+        const alertBanner = document.getElementById('alertBanner');
+        const alertText = document.getElementById('alertText');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        // Toast mesaj göster
+        function showToast(message, type = 'info') {
+            toastMessage.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+        
+        // Acil uyarı banner'ını güncelle
+        function updateAlertBanner() {
+            const today = new Date();
+            const last24Hours = incidents.filter(incident => {
+                const incidentDate = new Date(incident.date);
+                const hoursDiff = (today - incidentDate) / (1000 * 60 * 60);
+                return hoursDiff <= 24;
+            });
+            
+            const criticalIncidents = last24Hours.filter(i => i.severity === 'critical');
+            
+            if (criticalIncidents.length > 0) {
+                alertBanner.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+                alertText.innerHTML = `<strong>ACİL DURUM!</strong> Son 24 saatte ${criticalIncidents.length} kritik afet bildirimi`;
+                alertBanner.style.animation = 'pulse 1s infinite';
+            } else if (last24Hours.length > 0) {
+                alertText.textContent = `Son 24 saatte ${last24Hours.length} yeni afet bildirimi`;
+                alertBanner.style.animation = 'pulse 2s infinite';
+            } else {
+                alertText.textContent = 'Son 24 saatte yeni afet bildirimi yok';
+                alertBanner.style.background = 'linear-gradient(90deg, #2ecc71, #27ae60)';
+                alertBanner.style.animation = 'none';
+            }
+        }
+        
+        // Haritayı başlat
+        function initMap() {
+            // Ankara merkezli harita
+            map = L.map('map').setView([39.9334, 32.8597], 11);
+            
+            // OpenStreetMap tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Harita boyutunu ayarla ve yeniden boyutlandırmayı dinle
+            updateMapSize();
+            window.addEventListener('resize', updateMapSize);
+            
+            // Örnek afet bildirimleri ekle
+            addSampleIncidents();
+            
+            // Afet kategorilerini oluştur
+            renderCategoryFilters();
+            
+            // Tıklama ile afet bildirimi ekleme
+            map.on('click', function(e) {
+                if (currentUser) {
+                    showAddIncidentDialog(e.latlng);
+                } else {
+                    showToast('Afet bildirimi yapmak için giriş yapmalısınız!', 'warning');
+                    loginModal.style.display = 'flex';
+                }
+            });
+            
+            // Rastgele hava durumu güncelle
+            updateWeather();
+            
+            // Acil uyarı banner'ını güncelle
+            updateAlertBanner();
+        }
+        
+        // Harita boyutunu güncelle
+        function updateMapSize() {
+            const mapElement = document.getElementById('map');
+            if (map) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+            }
+        }
+        
+        // Hava durumu güncelle
+        function updateWeather() {
+            const weatherData = {
+                temp: Math.floor(Math.random() * 10) - 2, // -2°C ile 7°C arası
+                conditions: [
+                    { desc: 'Güneşli', icon: 'sun', humidity: '45%', wind: '8 km/h' },
+                    { desc: 'Parçalı Bulutlu', icon: 'cloud-sun', humidity: '65%', wind: '12 km/h' },
+                    { desc: 'Bulutlu', icon: 'cloud', humidity: '75%', wind: '10 km/h' },
+                    { desc: 'Hafif Yağmurlu', icon: 'cloud-rain', humidity: '85%', wind: '15 km/h' },
+                    { desc: 'Sisli', icon: 'smog', humidity: '90%', wind: '5 km/h' }
+                ]
+            };
+            
+            const randomCondition = weatherData.conditions[Math.floor(Math.random() * weatherData.conditions.length)];
+            
+            weatherTemp.textContent = `${weatherData.temp}°C`;
+            weatherDesc.textContent = randomCondition.desc;
+            
+            const weatherIcon = document.querySelector('.weather-icon i');
+            weatherIcon.className = `fas fa-${randomCondition.icon}`;
+            
+            // Hava durumu detaylarını göster
+            document.querySelector('.weather-info div:first-child').innerHTML += 
+                `<div style="font-size: 0.9rem; opacity: 0.8;">Nem: ${randomCondition.humidity} | Rüzgar: ${randomCondition.wind}</div>`;
+        }
+        
+        // Örnek afet bildirimleri ekle
+        function addSampleIncidents() {
+            const sampleIncidents = [
+                { 
+                    location: 'Çankaya', 
+                    type: 'deprem', 
+                    severity: 'medium',
+                    title: 'Hafif Şiddette Deprem', 
+                    description: 'Çankaya ilçesinde 3.2 büyüklüğünde hafif şiddette deprem hissedildi. Herhangi bir hasar bildirilmedi.',
+                    addedBy: 'AFAD Sistemi'
+                },
+                { 
+                    location: 'Kızılay', 
+                    type: 'kacak', 
+                    severity: 'high',
+                    title: 'Doğalgaz Kaçağı Şüphesi', 
+                    description: 'Kızılay meydanında doğalgaz kaçağı şüphesi. İtfaiye ve gaz dağıtım ekipleri yolda.',
+                    addedBy: 'İtfaiye'
+                },
+                { 
+                    location: 'Gölbaşı', 
+                    type: 'yangin', 
+                    severity: 'critical',
+                    title: 'Orman Yangını', 
+                    description: 'Gölbaşı bölgesinde orman yangını başladı. İtfaiye ekipleri müdahale ediyor. Rüzgar nedeniyle yangın yayılıyor.',
+                    addedBy: 'Orman Bakanlığı'
+                },
+                { 
+                    location: 'Etimesgut', 
+                    type: 'sel', 
+                    severity: 'high',
+                    title: 'Aşırı Yağış Su Baskını', 
+                    description: 'Etimesgut bölgesinde aşırı yağış nedeniyle su baskını oluştu. Bazı alt geçitler kullanılamaz durumda.',
+                    addedBy: 'Meteoroloji'
+                },
+                { 
+                    location: 'Polatlı', 
+                    type: 'heyelan', 
+                    severity: 'medium',
+                    title: 'Heyelan Tehlikesi', 
+                    description: 'Polatlı kırsalında aşırı yağış sonrası heyelan tehlikesi oluştu. Bölge sakinleri uyarıldı.',
+                    addedBy: 'AFAD Sistemi'
+                }
+            ];
+            
+            sampleIncidents.forEach(incidentData => {
+                const location = ankaraLocations[incidentData.location];
+                if (location) {
+                    addIncidentToMap(
+                        location.lat, 
+                        location.lng, 
+                        incidentData.type, 
+                        incidentData.severity,
+                        incidentData.title, 
+                        incidentData.description, 
+                        incidentData.addedBy
+                    );
+                }
+            });
+        }
+        
+        // Afet bildirimini haritaya ekle
+        function addIncidentToMap(lat, lng, type, severity, title, description, addedBy = null) {
+            const category = disasterCategories[type];
+            const severityInfo = severityLevels[severity];
+            const userId = currentUser ? currentUser.id : 'system';
+            
+            // Başlık kontrolü
+            if (!title || title.trim() === '') {
+                document.getElementById('incidentTitle').classList.add('error');
+                document.getElementById('titleError').style.display = 'block';
+                document.getElementById('incidentTitle').focus();
+                showToast('Lütfen bir başlık girin!', 'error');
+                return null;
+            }
+            
+            // Hata durumlarını temizle
+            document.getElementById('incidentTitle').classList.remove('error');
+            document.getElementById('titleError').style.display = 'none';
+            
+            // Özel ikon oluştur (şiddete göre boyut değişir)
+            const iconSize = severity === 'critical' ? 45 : 
+                            severity === 'high' ? 40 : 
+                            severity === 'medium' ? 35 : 30;
+            
+            const markerIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `
+                    <div style="
+                        background-color: ${category.color}; 
+                        width: ${iconSize}px; 
+                        height: ${iconSize}px; 
+                        border-radius: 50%; 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center; 
+                        color: white; 
+                        border: 3px solid white; 
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+                        position: relative;
+                        overflow: hidden;
+                    ">
+                        <i class="fas fa-${category.icon}" style="font-size: ${severity === 'critical' ? '20px' : '16px'};"></i>
+                        ${severity === 'critical' ? 
+                          '<div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 10px; padding: 2px; text-align: center;">ACİL</div>' : ''}
+                    </div>
+                `,
+                iconSize: [iconSize, iconSize],
+                iconAnchor: [iconSize/2, iconSize/2]
+            });
+            
+            // Marker oluştur
+            const marker = L.marker([lat, lng], { icon: markerIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <div style="min-width: 250px; font-family: 'Segoe UI', sans-serif;">
+                        <h3 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid ${category.color}; padding-bottom: 8px;">
+                            <i class="fas fa-${category.icon}" style="color: ${category.color};"></i> ${title}
+                        </h3>
+                        <div style="display: flex; align-items: center; gap: 8px; margin: 10px 0;">
+                            <span style="padding: 4px 10px; background: ${severityInfo.color}; color: white; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                <i class="fas fa-${severityInfo.icon}"></i> ${severityInfo.label}
+                            </span>
+                            <span style="font-size: 13px; color: #7f8c8d;">
+                                <i class="fas fa-clock"></i> ${new Date().toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
+                            </span>
+                        </div>
+                        <p style="margin: 12px 0; color: #555; line-height: 1.6;">${description || 'Açıklama bulunmuyor'}</p>
+                        <div style="font-size: 13px; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 10px;">
+                            <p><i class="fas fa-user"></i> <strong>Bildiren:</strong> ${addedBy || (currentUser ? currentUser.name : 'Sistem')}</p>
+                            <p><i class="fas fa-calendar"></i> <strong>Tarih:</strong> ${new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Koordinat:</strong> ${lat.toFixed(4)}, ${lng.toFixed(4)}</p>
+                        </div>
+                        ${currentUser && (currentUser.admin || addedBy === currentUser.name) ? 
+                          `<button onclick="deleteIncident(${incidents.length})" style="
+                            background: linear-gradient(135deg, #e74c3c, #c0392b); 
+                            color: white; 
+                            border: none; 
+                            padding: 10px 15px; 
+                            border-radius: 8px; 
+                            cursor: pointer; 
+                            width: 100%; 
+                            margin-top: 12px;
+                            font-weight: bold;
+                          ">
+                            <i class="fas fa-trash"></i> Bildirimi Sil
+                          </button>` : ''}
+                    </div>
+                `);
+            
+            // Afet bildirimi bilgilerini sakla
+            const incidentData = {
+                id: incidents.length,
+                lat, lng, type, severity, title, description, addedBy,
+                userId: userId,
+                date: new Date().toISOString(),
+                marker: marker
+            };
+            
+            incidents.push(incidentData);
+            
+            // Afet listesini güncelle
+            renderIncidentList();
+            
+            // Acil uyarı banner'ını güncelle
+            updateAlertBanner();
+            
+            // Kritik seviyede bildirim için özel uyarı
+            if (severity === 'critical') {
+                showToast(`ACİL DURUM: "${title}" bildirildi!`, 'error');
+                // Marker'ı titreştir (animasyon)
+                marker.openPopup();
+            } else {
+                showToast(`"${title}" başlıklı afet bildirimi eklendi!`, 'success');
+            }
+            
+            return incidentData;
+        }
+        
+        // Afet bildirimini sil
+        function deleteIncident(incidentId) {
+            if (!currentUser) {
+                showToast('Afet bildirimini silmek için giriş yapmalısınız!', 'warning');
+                loginModal.style.display = 'flex';
+                return;
+            }
+            
+            const incident = incidents[incidentId];
+            
+            // Yetki kontrolü
+            if (currentUser.admin || incident.addedBy === currentUser.name) {
+                if (confirm(`"${incident.title}" başlıklı afet bildirimini silmek istediğinize emin misiniz?`)) {
+                    // Haritadan kaldır
+                    map.removeLayer(incident.marker);
+                    
+                    // Diziden kaldır
+                    incidents.splice(incidentId, 1);
+                    
+                    // ID'leri güncelle
+                    incidents.forEach((inc, index) => {
+                        inc.id = index;
+                    });
+                    
+                    // Listeyi güncelle
+                    renderIncidentList();
+                    
+                    // Acil uyarı banner'ını güncelle
+                    updateAlertBanner();
+                    
+                    showToast('Afet bildirimi başarıyla silindi!', 'success');
+                }
+            } else {
+                showToast('Bu afet bildirimini silme yetkiniz yok!', 'error');
+            }
+        }
+        
+        // Afet kategorilerini render et
+        function renderCategoryFilters() {
+            categoryList.innerHTML = '';
+            
+            // Tümü seçeneği
+            const allItem = document.createElement('div');
+            allItem.className = `category-item ${selectedCategory === 'all' ? 'active' : ''}`;
+            allItem.style.borderColor = '#7f8c8d';
+            allItem.innerHTML = `
+                <div class="category-icon" style="color: #7f8c8d;">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <div style="font-weight: 600; margin-top: 5px;">Tümü</div>
+                <div style="font-size: 12px; color: #7f8c8d; margin-top: 3px;">${incidents.length} bildirim</div>
+            `;
+            allItem.onclick = () => filterIncidentsByCategory('all');
+            categoryList.appendChild(allItem);
+            
+            // Her kategori için
+            Object.keys(disasterCategories).forEach(key => {
+                const category = disasterCategories[key];
+                const categoryIncidents = incidents.filter(i => i.type === key);
+                
+                const item = document.createElement('div');
+                item.className = `category-item ${selectedCategory === key ? 'active' : ''}`;
+                item.style.borderColor = category.color;
+                item.innerHTML = `
+                    <div class="category-icon" style="color: ${category.color};">
+                        <i class="fas fa-${category.icon}"></i>
+                    </div>
+                    <div style="font-weight: 600; margin-top: 5px;">${category.label}</div>
+                    <div style="font-size: 12px; color: #7f8c8d; margin-top: 3px;">${categoryIncidents.length} bildirim</div>
+                `;
+                item.onclick = () => filterIncidentsByCategory(key);
+                categoryList.appendChild(item);
+            });
+        }
+        
+        // Kategoriye göre filtrele
+        function filterIncidentsByCategory(category) {
+            selectedCategory = category;
+            
+            // Tüm marker'ları gizle
+            incidents.forEach(incident => {
+                map.removeLayer(incident.marker);
+            });
+            
+            // Filtrelenmiş marker'ları göster
+            incidents.forEach(incident => {
+                if (category === 'all' || incident.type === category) {
+                    incident.marker.addTo(map);
+                }
+            });
+            
+            // Kategorileri yeniden render et
+            renderCategoryFilters();
+            
+            // Afet listesini güncelle
+            renderIncidentList();
+        }
+        
+        // Afet bildirimleri listesini render et
+        function renderIncidentList() {
+            incidentsContainer.innerHTML = '';
+            
+            // Filtrelenmiş bildirimler
+            const filteredIncidents = selectedCategory === 'all' 
+                ? incidents 
+                : incidents.filter(i => i.type === selectedCategory);
+            
+            if (filteredIncidents.length === 0) {
+                noIncidentsText.style.display = 'block';
+                noIncidentsText.textContent = selectedCategory === 'all' 
+                    ? 'Henüz afet bildirimi yapılmadı' 
+                    : `Bu kategoride afet bildirimi bulunmuyor`;
+                return;
+            }
+            
+            noIncidentsText.style.display = 'none';
+            
+            // Kritik bildirimleri önce göster
+            const sortedIncidents = [...filteredIncidents].sort((a, b) => {
+                const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+                return severityOrder[a.severity] - severityOrder[b.severity];
+            });
+            
+            sortedIncidents.forEach(incident => {
+                const category = disasterCategories[incident.type];
+                const severity = severityLevels[incident.severity];
+                
+                const incidentItem = document.createElement('div');
+                incidentItem.className = 'incident-item';
+                incidentItem.style.borderLeftColor = category.color;
+                
+                incidentItem.innerHTML = `
+                    <div class="incident-header">
+                        <div class="incident-title">${incident.title}</div>
+                        <div class="severity-badge" style="background: ${severity.color};">
+                            <i class="fas fa-${severity.icon}"></i> ${severity.label}
+                        </div>
+                    </div>
+                    <div class="incident-meta">
+                        <span><i class="fas fa-${category.icon}" style="color: ${category.color};"></i> ${category.label}</span>
+                        <span><i class="fas fa-user"></i> ${incident.addedBy}</span>
+                        <span><i class="fas fa-clock"></i> ${new Date(incident.date).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div class="incident-desc">${incident.description}</div>
+                    <button class="delete-btn" onclick="deleteIncident(${incident.id})" ${!currentUser || (!currentUser.admin && incident.addedBy !== currentUser.name) ? 'disabled' : ''}>
+                        <i class="fas fa-trash"></i> Sil
+                    </button>
+                `;
+                
+                incidentsContainer.appendChild(incidentItem);
+            });
+        }
+        
+        // Tıklama ile afet bildirimi dialog'u göster
+        function showAddIncidentDialog(latlng) {
+            const type = document.getElementById('incidentType').value;
+            const severity = document.getElementById('incidentSeverity').value;
+            const title = document.getElementById('incidentTitle').value;
+            const description = document.getElementById('incidentDesc').value;
+            
+            const incidentData = addIncidentToMap(
+                latlng.lat, 
+                latlng.lng, 
+                type, 
+                severity, 
+                title, 
+                description, 
+                currentUser.name
+            );
+            
+            if (incidentData) {
+                // Formu temizle
+                document.getElementById('incidentTitle').value = '';
+                document.getElementById('incidentDesc').value = '';
+                
+                // Marker'a zoom yap
+                map.setView(latlng, 14);
+            }
+        }
+        
+        // Kullanıcı giriş yap
+        function loginUser(username, password) {
+            // Basit simülasyon
+            if (username && password) {
+                currentUser = {
+                    id: Date.now().toString(),
+                    name: username,
+                    admin: username === 'admin' || username === 'afad',
+                    role: username === 'admin' ? 'Sistem Yöneticisi' : 
+                          username === 'afad' ? 'AFAD Görevlisi' : 'Vatandaş'
+                };
+                
+                updateUIForUser();
+                closeLoginModal();
+                showToast(`Hoş geldiniz, ${username}! (${currentUser.role})`, 'success');
+                
+                // Acil yardım butonunu göster
+                emergencyBtn.style.display = 'block';
+                
+                return true;
+            }
+            return false;
+        }
+        
+        // Kullanıcı kayıt ol
+        function registerUser(username, password, email) {
+            // Basit simülasyon
+            if (username && password) {
+                currentUser = {
+                    id: Date.now().toString(),
+                    name: username,
+                    email: email,
+                    admin: false,
+                    role: 'Vatandaş'
+                };
+                
+                updateUIForUser();
+                closeLoginModal();
+                
+                showToast(`Kayıt başarılı! Hoş geldiniz, ${username}!`, 'success');
+                emergencyBtn.style.display = 'block';
+                return true;
+            }
+            return false;
+        }
+        
+        // Kullanıcı çıkış yap
+        function logoutUser() {
+            const oldUsername = currentUser ? currentUser.name : '';
+            currentUser = null;
+            updateUIForUser();
+            showToast(`Güle güle, ${oldUsername}!`, 'info');
+            emergencyBtn.style.display = 'none';
+        }
+        
+        // Kullanıcı durumuna göre UI güncelle
+        function updateUIForUser() {
+            if (currentUser) {
+                userName.textContent = currentUser.name;
+                userAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+                userAvatar.style.background = currentUser.admin ? 
+                    'linear-gradient(135deg, #e74c3c, #c0392b)' : 
+                    'linear-gradient(135deg, #2ecc71, #27ae60)';
+                userStatus.textContent = currentUser.role;
+                loginPrompt.style.display = 'none';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                addIncidentBtn.disabled = false;
+                addIncidentBtn.innerHTML = '<i class="fas fa-bullhorn"></i> Afet Bildirimi Yap';
+            } else {
+                userName.textContent = 'Misafir Kullanıcı';
+                userAvatar.textContent = '?';
+                userAvatar.style.background = 'linear-gradient(135deg, #7f8c8d, #95a5a6)';
+                userStatus.textContent = 'Giriş yapılmadı';
+                loginPrompt.style.display = 'block';
+                loginBtn.style.display = 'block';
+                logoutBtn.style.display = 'none';
+                emergencyBtn.style.display = 'none';
+                addIncidentBtn.disabled = true;
+                addIncidentBtn.innerHTML = '<i class="fas fa-bullhorn"></i> Afet Bildirimi Yap (Giriş Yapın)';
+            }
+            
+            // Afet listesini güncelle
+            renderIncidentList();
+        }
+        
+        // Acil yardım çağır
+        function callEmergency() {
+            if (!currentUser) {
+                showToast('Acil yardım çağırmak için giriş yapmalısınız!', 'warning');
+                return;
+            }
+            
+            const emergencyNumbers = [
+                '112 Acil Çağrı Merkezi',
+                '110 İtfaiye',
+                '155 Polis İmdat',
+                '156 Jandarma',
+                '177 Orman Yangın'
+            ];
+            
+            const randomNumber = emergencyNumbers[Math.floor(Math.random() * emergencyNumbers.length)];
+            
+            if (confirm(`ACİL YARDIM ÇAĞIRMAK ÜZERESİNİZ!\n\nAranacak numara: ${randomNumber}\n\nDevam etmek istiyor musunuz?`)) {
+                showToast(`Acil yardım çağrınız alındı: ${randomNumber} aranıyor...`, 'error');
+                
+                // 5 saniye sonra geri bildirim
+                setTimeout(() => {
+                    showToast(`${randomNumber} ekibi yola çıktı. Konumunuz paylaşıldı.`, 'success');
+                }, 5000);
+            }
+        }
+        
+        // Giriş modal'ını kapat
+        function closeLoginModal() {
+            loginModal.style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('email').value = '';
+        }
+        
+        // Olay dinleyicileri
+        loginBtn.addEventListener('click', () => {
+            loginModal.style.display = 'flex';
+        });
+        
+        closeModal.addEventListener('click', closeLoginModal);
+        
+        emergencyBtn.addEventListener('click', callEmergency);
+        
+        doLoginBtn.addEventListener('click', () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showToast('Lütfen kullanıcı adı ve şifre girin!', 'error');
+                return;
+            }
+            
+            loginUser(username, password);
+        });
+        
+        doRegisterBtn.addEventListener('click', () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const email = document.getElementById('email').value;
+            
+            if (!username || !password) {
+                showToast('Lütfen kullanıcı adı ve şifre girin!', 'error');
+                return;
+            }
+            
+            registerUser(username, password, email);
+        });
+        
+        logoutBtn.addEventListener('click', logoutUser);
+        
+        addIncidentBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                showToast('Afet bildirimi yapmak için giriş yapmalısınız!', 'warning');
+                loginModal.style.display = 'flex';
+                return;
+            }
+            
+            const type = document.getElementById('incidentType').value;
+            const severity = document.getElementById('incidentSeverity').value;
+            const title = document.getElementById('incidentTitle').value;
+            const description = document.getElementById('incidentDesc').value;
+            
+            // Rastgele bir Ankara lokasyonu seç
+            const locationKeys = Object.keys(ankaraLocations);
+            const randomLocationKey = locationKeys[Math.floor(Math.random() * locationKeys.length)];
+            const location = ankaraLocations[randomLocationKey];
+            
+            const incidentData = addIncidentToMap(
+                location.lat, 
+                location.lng, 
+                type, 
+                severity, 
+                title, 
+                description, 
+                currentUser.name
+            );
+            
+            if (incidentData) {
+                // Formu temizle
+                document.getElementById('incidentTitle').value = '';
+                document.getElementById('incidentDesc').value = '';
+                
+                // Marker'a zoom yap
+                map.setView([location.lat, location.lng], 13);
+            }
+        });
+        
+        // Başlık input'una Enter tuşu ile bildirim ekleme
+        document.getElementById('incidentTitle').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && currentUser) {
+                document.getElementById('addIncidentBtn').click();
+            }
+        });
+        
+        // Input'tan focus çıkınca hata mesajını temizle
+        document.getElementById('incidentTitle').addEventListener('blur', function() {
+            if (this.value.trim() !== '') {
+                this.classList.remove('error');
+                document.getElementById('titleError').style.display = 'none';
+            }
+        });
+        
+        // Modal dışına tıklayınca kapat
+        window.addEventListener('click', (e) => {
+            if (e.target === loginModal) {
+                closeLoginModal();
+            }
+        });
+        
+        // Uygulamayı başlat
+        initMap();
+        updateUIForUser();
+        
+        // Her saat hava durumu güncelle
+        setInterval(updateWeather, 3600000);
+        
+        // Her 30 dakikada acil uyarı banner'ını güncelle
+        setInterval(updateAlertBanner, 1800000);
+        
+        // Global fonksiyonlar
+        window.deleteIncident = deleteIncident;
+        window.showToast = showToast;
+    </script>
+</body>
+</html>
