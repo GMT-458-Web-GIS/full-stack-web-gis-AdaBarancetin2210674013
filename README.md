@@ -123,130 +123,40 @@ C:\webgis
 - Node.js (LTS recommended)
 - npm
 - Database service 
-### Install Dependencies
-```bash
+
+Installation & Running the Application (Windows)
+
+Install the required dependencies:
 cd C:\webgis
 npm install
-Environment Configuration
-Create a .env file using the provided template:
 
-bash
-Kodu kopyala
+Create the environment configuration file:
 copy .env.example .env
-Example .env
-env
-Kodu kopyala
-# Server
-PORT=3000
-NODE_ENV=development
 
-# Base URL
-BASE_URL=http://localhost:3000
+Edit the .env file and set a secure value for JWT_SECRET.
+If MongoDB is used, make sure the MongoDB service is running and the DB_URI value is correct.
 
-# Authentication
-JWT_SECRET=replace_with_secure_secret
-JWT_EXPIRES_IN=1d
-
-# Database
-DB_URI=mongodb://localhost:27017/webgis
-
-# CORS
-CORS_ORIGIN=http://localhost:3000
-⚠️ Never commit .env files to version control.
-
-Running the Application
-Development Mode
-bash
-Kodu kopyala
-npm run dev
-Production Mode
-bash
-Kodu kopyala
+Run the application:
 npm start
-Once running:
 
-Application UI:
-http://localhost:<PORT>/
-
-API Base URL:
-http://localhost:<PORT>/api
-
-API Documentation (Swagger)
-Swagger UI is exposed via:
-
-bash
-Kodu kopyala
-http://localhost:<PORT>/api-docs
-swagger.js initializes Swagger middleware
-
-swagger.yaml contains OpenAPI schema definitions
+Once the server is running, open the following URLs in your browser:
+Application UI: http://localhost:3000/
+API Base URL: http://localhost:3000/api
+API Documentation (Swagger): http://localhost:3000/api-docs
 
 Core API Endpoints
-Actual routes may vary depending on implementation in routes/.
 
 Authentication
-Method	Endpoint	Description
-POST	/api/auth/register	User registration
-POST	/api/auth/login	User login (JWT)
+POST /api/auth/register – User registration
+POST /api/auth/login – User login (JWT-based)
 
 Disaster Reports
-Method	Endpoint	Description
-GET	/api/incidents	Get all incidents
-GET	/api/incidents?type=fire	Filter by category
-GET	/api/incidents?severity=critical	Filter by severity
-POST	/api/incidents	Create incident (auth required)
-DELETE	/api/incidents/:id	Delete incident (admin/owner)
+GET /api/incidents – Retrieve all incidents
+POST /api/incidents – Create a new incident (authentication required)
+DELETE /api/incidents/:id – Delete an incident (admin or owner)
 
 Authentication & Authorization
-Guest
-
-Read-only access
-
-Authenticated User
-
-Create incidents
-
-Delete own incidents
-
-Admin / Authority
-
-Full access (delete any incident)
-
-Authorization is enforced through:
-
-JWT verification middleware
-
-Role / ownership checks
-
-Error Handling & Middleware
-Centralized error handler
-
-Input validation middleware
-
-Authentication & authorization middleware
-
-Graceful HTTP error responses (4xx / 5xx)
-
-Known Limitations
-Real-time updates are not enabled (polling only)
-
-Media upload (photo/video) not implemented
-
-Single-city support (Ankara only)
-
-Offline mode not supported
-
-Roadmap
-WebSocket / SSE for real-time alerts
-
-Marker clustering & heatmaps
-
-Media attachment support
-
-Incident verification & moderation workflow
-
-Multi-city and national scale support
-
-Audit logging and rate limiting
-
+Guest: Read-only access (view incidents)
+Authenticated User: Can create incidents and delete own incidents
+Admin: Full access (can manage all incidents)
 
