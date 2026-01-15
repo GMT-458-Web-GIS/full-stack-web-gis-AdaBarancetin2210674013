@@ -122,8 +122,7 @@ C:\webgis
 ### Prerequisites
 - Node.js (LTS recommended)
 - npm
-- Database service (if persistence is enabled)
-
+- Database service 
 ### Install Dependencies
 ```bash
 cd C:\webgis
@@ -249,4 +248,5 @@ Incident verification & moderation workflow
 Multi-city and national scale support
 
 Audit logging and rate limiting
+
 
